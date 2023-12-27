@@ -1,0 +1,51 @@
+work_dir: ./work_dir/ntu60/xsub/bone
+# feeder
+feeder: feeders.feeder_ntu.Feeder
+train_feeder_args:
+  data_path: F:/ChangLi/CTR-DATA/NTU60_CS.npz  # the procesed data path
+  split: train
+  debug: False
+  random_choose: False
+  random_shift: False
+  random_move: False
+  window_size: 64
+  normalization: False
+  random_rot: True
+  p_interval: [0.5, 1]
+  vel: False
+  bone: True
+
+test_feeder_args:
+  data_path: F:/ChangLi/CTR-DATA/NTU60_CS.npz
+  split: test
+  window_size: 64
+  p_interval: [0.95]
+  vel: False
+  bone: True
+
+# model
+model: model.DDGCN.Model
+
+model_args:
+  num_class: 60
+  num_point: 25
+  num_person: 2
+  graph: graph.graph.Graph
+  graph_args:
+    layout: 'ntu-rgb+d'
+    strategy: 'activity'
+    max_hop: 1
+#optim
+weight_decay: 0.0004
+base_lr: 0.1
+lr_decay_rate: 0.1
+# step: [30, 40, 50]
+step: [30, 40]
+warm_up_epoch: 5
+
+# training
+device: [0, 1]
+batch_size: 64
+num_epoch: 80
+test_batch_size: 64
+test_batch_size: 64
