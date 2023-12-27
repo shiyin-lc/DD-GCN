@@ -76,7 +76,7 @@ Put downloaded data into the following directory structure:
 - Change the config file depending on what you want.
 ```
 - Example: training DDGCN on NTU RGB+D 60 cross subject with bone data
-python main.py --config config/nturgbd-cross-subject/train.yaml
+python main.py --config config/nturgbd-cross-subject/train.yaml  # default
 ```
 - To train the model on joint, motion, and bone motion modalities, setting `bone` or `vel` arguments in the config file `train.yaml` or in the command line. 
 
@@ -88,7 +88,7 @@ python main.py --config <work_dir>/config.yaml --work-dir <work_dir> --phase tes
 
 ```
 - Example: training DDGCN on NTU RGB+D 60 cross subject with bone data
-python main.py --config config/nturgbd-cross-subject/test.yaml
+python main.py --config config/nturgbd-cross-subject/test.yaml  # default
 ```
 
 ## Acknowledgements
@@ -98,7 +98,7 @@ This repo is based on [CTR-GCN](https://github.com/Uason-Chen/CTR-GCN). Thanks t
 
 Please cite this work if you find it useful.
 ```
-  @INPROCEEDINGS{10219780,
+  @INPROCEEDINGS{ChangLi2023,
     author={Li, Chang and Huang, Qian and Mao, Yingchi},
     booktitle={2023 IEEE International Conference on Multimedia and Expo (ICME)}, 
     title={DD-GCN: Directed Diffusion Graph Convolutional Network for Skeleton-based Human Action Recognition}, 
