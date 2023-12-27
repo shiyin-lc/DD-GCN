@@ -98,7 +98,7 @@ This repo is based on [CTR-GCN](https://github.com/Uason-Chen/CTR-GCN). Thanks t
 
 Please cite this work if you find it useful.
 ```
-  @INPROCEEDINGS{10219780,
+  @INPROCEEDINGS{ChangLi2023,
     author={Li, Chang and Huang, Qian and Mao, Yingchi},
     booktitle={2023 IEEE International Conference on Multimedia and Expo (ICME)}, 
     title={DD-GCN: Directed Diffusion Graph Convolutional Network for Skeleton-based Human Action Recognition}, 
