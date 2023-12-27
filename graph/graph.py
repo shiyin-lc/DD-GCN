@@ -15,8 +15,7 @@ class Graph():
         - distance: Distance Partitioning
         - spatial: Spatial Configuration
         - activity: Activity Partitioning
-        For more information, please refer to the section 'Partitistrategy (string): must be one of the follow candidateson Strategies'
-            in our paper (https://arxiv.org/abs/1801.07455).
+        For more information, please refer to our paper (https://ieeexplore.ieee.org/document/10219780).
 
         layout (string): must be one of the follow candidates
         - openpose: Is consists of 18 joints. For more information, please
