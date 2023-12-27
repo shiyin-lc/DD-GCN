@@ -44,7 +44,7 @@ step: [30, 40]
 warm_up_epoch: 5
 
 # training
-device: [0, 1]
+device: [0, 1, 2, 3]
 batch_size: 64
 num_epoch: 80
 test_batch_size: 64
