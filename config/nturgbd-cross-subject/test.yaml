@@ -27,4 +27,4 @@ phase: test
 device: [0, 1]
 batch_size: 64
 test_batch_size: 64
-weights: 'work_dir/ntu60/xsub/runs-43-26918.pt'
+weights: 'work_dir/ntu60/xsub/ntu60_cs_bone.pt'
