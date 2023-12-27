@@ -1,8 +1,8 @@
 # DD-GCN
 This repo is the official implementation for the paper ["DD-GCN: Directed Diffusion Graph Convolutional Network for Skeleton-based Human Action Recognition"](https://ieeexplore.ieee.org/document/10219780), ICME 2023.
-The pipeline of DD-GCN is shown in the following figure.
-![image](pipeline.png)
-DD-GCN (a) has ten STGC layers, and each layer contains two modules: CAGC (b) and STSE (d). After global average pooling, Softmax is utilized for action classification. CAGC is the unit of channel-wise correlation modeling and Graph Convolution (GC) with activity partition strategy (c). STSE employs a Multi-head Attention Mechanism (MSA) and Group Temporal Convolution (GTC) for synchronized spatio-temporal embedding.
+### Pipeline
+![image](pipeline.png) 
+- DD-GCN (a) has ten STGC layers, and each layer contains two modules: CAGC (b) and STSE (d). After global average pooling, Softmax is utilized for action classification. CAGC is the unit of channel-wise correlation modeling and Graph Convolution (GC) with activity partition strategy (c). STSE employs a Multi-head Attention Mechanism (MSA) and Group Temporal Convolution (GTC) for synchronized spatio-temporal embedding.
 # Prerequisites
 
 - Python >= 3.6
