@@ -157,17 +157,16 @@ class CAGC(nn.Module):
         y = self.relu(y)
         return y
 
-# todo:注意不能整除的情况  assert
-def subDDG(x, window_size): # window_size避免混淆还是换成列表
+# todo: Add a division assert 
+def subDDG(x, window_size): 
     B, H, W, C = x.shape
     # x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
     x = x.view(B, H // window_size[0], window_size[0], W // window_size[1], window_size[1], C)
     windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size[0], window_size[1], C)
     return windows
-# todo: TCN会导致维度变化，窗口改成均分
 
 
-class subDDG_Attention(nn.Module):  # 单个窗口的attention
+class subDDG_Attention(nn.Module):  # attention for single window
     r""" Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
 
@@ -194,25 +193,22 @@ class subDDG_Attention(nn.Module):  # 单个窗口的attention
         self.red_channel = self.in_channel//self.red
         self.proj1 = nn.Linear(self.in_channel, self.red_channel)
         head_dim = self.red_channel // self.num_heads
-        self.scale = qk_scale or head_dim ** -0.5  # 优先取qk_scale的值，若为None则是head_dim ** -0.5
+        self.scale = qk_scale or head_dim ** -0.5  
 
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
             torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), self.num_heads))  # 2*Wh-1 * 2*Ww-1, nH
-        # todo：是否需要相对位置编码？是因为划分了patch，我需要吗？
         # get pair-wise relative position index for each token inside the window
         coords_h = torch.arange(self.window_size[0])  # [0, 1, 2, 3, 4, 5..., h]
         coords_w = torch.arange(self.window_size[1])  # [0, 1, 2, 3, 4, 5..., w]
         coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
         coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
         relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
-        # [:, :, None]在原有维度的前面增加一维，这里会出现负数
         relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
-        relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0 消除了负数 可以理解为x轴的相对位置
-        relative_coords[:, :, 1] += self.window_size[1] - 1  # y轴的相对位置
-        relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1  # 将二维的相对位置映射为一维的，相当于将二维张量展平后的相对位置
-        # 相对位置编码 表示窗口内第i个patch相对于第j个patch的坐标。窗口内共有h*w个patch, 例：x方向的取值范围是[-h,h]
-        relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww  都大于0
+        relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0 
+        relative_coords[:, :, 1] += self.window_size[1] - 1  # y
+        relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1  
+        relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww 
         # print(relative_position_index)
         self.register_buffer("relative_position_index", relative_position_index)
 
@@ -253,15 +249,15 @@ class subDDG_Attention(nn.Module):  # 单个窗口的attention
         #     attn = self.softmax(attn)
         attn = self.softmax(attn)
 
-        attn = self.attn_drop(attn)  # dropout之后的
+        attn = self.attn_drop(attn) 
 
         x = (attn @ v).transpose(1, 2).reshape(B_, L, C)
-        x = self.proj2(x)    # 投影层，保持维度不变
+        x = self.proj2(x)    
         x = self.proj_drop(x)
         return x
 
 
-class STSE_Encoder(nn.Module):  # 整体的window  todo: note:先只考虑单列window
+class STSE_Encoder(nn.Module):  
     def __init__(self, in_channel, window_size, num_heads,red=4,qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., drop_path=0.):
         super(STSE_Encoder, self).__init__()
         self.in_channel = in_channel
@@ -277,8 +273,7 @@ class STSE_Encoder(nn.Module):  # 整体的window  todo: note:先只考虑单列
         bn_init(self.bn2, 1)
         # self.norm1 = norm_layer(in_channel)
         # self.norm2 = norm_layer(in_channel)
-    def forward(self, x):  # todo:输入是什么？ n*m,c,t,v
-        # N,C,T,V = x.shape()
+    def forward(self, x):  # n*m,c,t,v
         N,C,T,V = x.size()
         # assert self.in_channel == C, "window_size has wrong size"
         x = self.bn1(x)
@@ -286,17 +281,15 @@ class STSE_Encoder(nn.Module):  # 整体的window  todo: note:先只考虑单列
         assert self.window_size[1] == V, "window_size has wrong size"
 
         win_num = T//self.window_size[0]
-        shortcut = x  # TODO:添加跳跃连接
-        x_windows = subDDG(x, self.window_size)  # 返回窗口个数和每个窗口的大小 window_size是列表 todo:shifted
+        shortcut = x  
+        x_windows = subDDG(x, self.window_size)  
         x_windows = x_windows.view(-1, self.window_size[0] * self.window_size[1], C)  # nW*B, window_size*window_size, C
         # W-MSA/SW-MSA
         # attn_windows = self.attn(x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
         attn_windows = self.attn(x_windows)  # nW*B, window_size*window_size, C
-        # todo: mask什么作用？是否需要？
         # merge windows
         attn_windows = attn_windows.view(-1, win_num, self.window_size[0], self.window_size[1], C)
         former_attn = attn_windows.view(-1, win_num*self.window_size[0], self.window_size[1], C)
-        # todo:需要分步？需要保证时间顺序没有变
 
         x = shortcut + self.drop_path(former_attn)
         # FFN
@@ -305,7 +298,7 @@ class STSE_Encoder(nn.Module):  # 整体的window  todo: note:先只考虑单列
         return self.relu(x)  # N, C, T, V
 
 
-class STSE_Encoder_part(nn.Module):  # 整体的window  todo: note:先只考虑单列window
+class STSE_Encoder_part(nn.Module):  
     def __init__(self, in_channel, window_size, num_heads,red=4,qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0., drop_path=0.):
         super(STSE_Encoder_part, self).__init__()
         self.in_channel = in_channel
@@ -321,7 +314,7 @@ class STSE_Encoder_part(nn.Module):  # 整体的window  todo: note:先只考虑�
         bn_init(self.bn2, 1)
         # self.norm1 = norm_layer(in_channel)
         # self.norm2 = norm_layer(in_channel)
-    def forward(self, x):  # todo:输入是什么？ n*m,c,t,v
+    def forward(self, x):  
         # N,C,T,V = x.shape()
         N,C,T,V = x.size()
         # assert self.in_channel == C, "window_size has wrong size"
@@ -330,17 +323,15 @@ class STSE_Encoder_part(nn.Module):  # 整体的window  todo: note:先只考虑�
         assert self.window_size[0] == T, "window_size has wrong size"
 
         win_num = V//self.window_size[1]
-        shortcut = x  # TODO:添加跳跃连接
-        x_windows = subDDG(x, self.window_size)  # 返回窗口个数和每个窗口的大小 window_size是列表 todo:shifted
+        shortcut = x 
+        x_windows = subDDG(x, self.window_size) 
         x_windows = x_windows.view(-1, self.window_size[0] * self.window_size[1], C)  # nW*B, window_size*window_size, C
         # W-MSA/SW-MSA
         # attn_windows = self.attn(x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
         attn_windows = self.attn(x_windows)  # nW*B, window_size*window_size, C
-        # todo: mask什么作用？是否需要？
         # merge windows
         attn_windows = attn_windows.view(-1, win_num, self.window_size[0], self.window_size[1], C)
         former_attn = attn_windows.permute(0, 2, 1, 3, 4).contiguous().view(-1, self.window_size[0], win_num*self.window_size[1], C)
-        # todo:需要分步？需要保证时间顺序没有变
         x = shortcut + self.drop_path(former_attn)
         # FFN
         x = x + self.drop_path(self.mlp(x))
@@ -362,30 +353,6 @@ class Pool_Channel(nn.Module):
         return out
 
 
-class SAGC_pre(nn.Module):
-    def __init__(self, in_channels, out_channels, A, stride=1, residual=True, window_size=[4, 25], num_heads=4, group=8):
-        super(SAGC_pre, self).__init__()
-
-        self.cagc = CAGC(in_channels, out_channels, A)
-        self.stse_encoder = STSE_Encoder(out_channels, window_size, num_heads)
-        #self.stse_encoder2 = STSE_Encoder(out_channels, window_size2, num_heads)
-        #self.pool_c = nn.Pool_Channel(1)
-        #self.pool_t = nn.AvgPool2d((Pool_size[0], 1))
-        #self.pool_v = nn.AvgPool2d((1, Pool_size[1]))
-        #self.fc = nn.Linear(in_channels*2, out_channels)
-        self.stse_gtc = GTC(out_channels, out_channels, stride=stride, group=group)
-        self.relu = nn.ReLU()
-        if not residual:
-            self.residual = lambda x: 0
-        else:
-            self.residual = lambda x: x
-    def forward(self, x):
-        x = self.cagc(x)
-        x1 = self.stse_encoder(x)
-        x2 = self.stse_gtc(x1) + self.residual(x)
-        return self.relu(x2)
-
-
 class SE_Block(nn.Module):
     def __init__(self, ch_in, reduction=4):
         super(SE_Block, self).__init__()
@@ -399,9 +366,9 @@ class SE_Block(nn.Module):
 
     def forward(self, x):
         b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)  # squeeze操作
-        y = self.fc(y).view(b, c, 1, 1)  # FC获取通道注意力权重，是具有全局信息的
-        return x * y.expand_as(x)  # 注意力作用每一个通道上
+        y = self.avg_pool(x).view(b, c) 
+        y = self.fc(y).view(b, c, 1, 1)  
+        return x * y.expand_as(x)
 
 
 class SAGC(nn.Module):
@@ -428,32 +395,6 @@ class SAGC(nn.Module):
         x = self.stse_gtc(x_f) + self.residual(x)
         return self.relu(x)
 
-class SAGC_CMD(nn.Module):
-    def __init__(self, in_channels, out_channels, A, stride=1, residual=True, window_size1=[4, 25],window_size2=[64, 5], num_heads=4, group=8):  # pool_size=[64, 25], dim=128
-        super(SAGC_CMD, self).__init__()
-        self.num_class = 60
-        self.M= 2
-        self.cagc = CAGC(in_channels, out_channels, A)
-        self.stse_encoder = STSE_Encoder(out_channels, window_size1, num_heads)
-        self.stse_encoder2 = STSE_Encoder_part(out_channels, window_size2, num_heads)
-        # self.pool = nn.AvgPool2d(out_channels, )
-        self.pro = nn.Linear(in_features=out_channels*2, out_features=self.num_class)
-        self.fc = nn.Linear(in_features=out_channels*2, out_features=out_channels)
-        self.stse_gtc = GTC(out_channels, out_channels, stride=stride, group=group)
-        self.relu = nn.ReLU()
-        if not residual:
-            self.residual = lambda x: 0
-        else:
-            self.residual = lambda x: x
-    def forward(self, x):
-        x = self.cagc(x)
-        x1 = self.stse_encoder(x)
-        x2 = self.stse_encoder2(x)
-        x_cat = torch.cat((x1, x2), dim=1).permute(0, 2, 3, 1)
-        x_f = self.fc(x_cat).permute(0, 3, 1, 2).contiguous()
-        x = self.stse_gtc(x_f) + self.residual(x)
-        return self.relu(x), x1, x2
-
 
 class SAGC_SE_ADD(nn.Module):
     def __init__(self, in_channels, out_channels, A, stride=1, residual=True, window_size1=[4, 25],window_size2=[64, 1], num_heads=4, group=8):  # pool_size=[64, 25], dim=128
@@ -477,40 +418,6 @@ class SAGC_SE_ADD(nn.Module):
         x = self.stse_gtc(x1 + x2) + self.residual(x)
         return self.relu(x)
 
-# ###CMD
-# def _momentum_update_key_encoder(self):
-#     """
-#     Momentum update of the key encoder
-#     """
-#     for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
-#         param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
-#
-#  @torch.no_grad()
-# def _momentum_update_key_encoder_motion(self):
-#     for param_q, param_k in zip(self.encoder_q_motion.parameters(), self.encoder_k_motion.parameters()):
-#         param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
-class SAGC_SE_ADD_3w(nn.Module):
-    def __init__(self, in_channels, out_channels, A, stride=1, residual=True, window_size1=[4, 25],window_size2=[64, 1], window_size3=[1, 25], num_heads=4, group=8):  # pool_size=[64, 25], dim=128
-        super(SAGC_SE_ADD, self).__init__()
-        self.cagc = CAGC(in_channels, out_channels, A)
-        self.stse_encoder = STSE_Encoder(out_channels, window_size1, num_heads)
-        self.stse_t = STSE_Encoder_part(out_channels, window_size2, num_heads)
-        self.stse_s = STSE_Encoder_part(out_channels, window_size3, num_heads)
-        # self.pool = nn.AvgPool2d(out_channels, )
-        self.stse_gtc = GTC(out_channels, out_channels, stride=stride, group=group)
-        self.relu = nn.ReLU()
-        self.se1 = SE_Block(out_channels)
-        self.se2 = SE_Block(out_channels)
-        if not residual:
-            self.residual = lambda x: 0
-        else:
-            self.residual = lambda x: x
-    def forward(self, x):
-        x = self.cagc(x)
-        x1 = self.se1(self.stse_s(x))
-        x2 = self.se2(self.stse_t(x))
-        x = self.stse_gtc(self.stse_encoder(x1+x2))+self.residual(x)
-        return self.relu(x)
 
 @torch.no_grad()
 def _dequeue_and_enqueue(self, keys):
