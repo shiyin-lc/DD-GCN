@@ -3,7 +3,7 @@ work_dir: ./work_dir/ntu60/xsub/
 feeder: feeders.feeder_ntu.Feeder
 
 test_feeder_args:
-  data_path: F:/ChangLi/CTR-DATA/NTU60_CS.npz
+  data_path: F:/ChangLi/CTR-DATA/NTU60_CS.npz  # The path of NTU60_CS.npz 
   split: test
   window_size: 64
   p_interval: [0.95]
@@ -27,4 +27,4 @@ phase: test
 device: [0, 1]
 batch_size: 64
 test_batch_size: 64
-weights: 'work_dir/ntu60/xsub/git/runs-43-26918.pt'
+weights: 'work_dir/ntu60/xsub/runs-43-26918.pt'
